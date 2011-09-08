@@ -6,7 +6,6 @@
 #include <cmath>
 
 using std::thread;
-using std::mutex;
 using std::cout;
 
 // Computes y = A*x for symmetric A. 
@@ -14,13 +13,7 @@ using std::cout;
 Vector* sym_spmv(const SparseMatrix &A, const Vector &x, int nthreads) {
 
     std::vector<Vector*> rhs(nthreads);   
-    std::vector<std::thread> pool;
-    std::vector<mutex*> m(nthreads);
-
-    for (int t=0; t<nthreads; ++t) {
-        m[t] = new mutex();
-        m[t]->lock();
-    }
+    std::vector<thread> pool;
 
     for (int t=0; t<nthreads; ++t) {
         pool.push_back(thread(
@@ -31,8 +24,9 @@ Vector* sym_spmv(const SparseMatrix &A, const Vector &x, int nthreads) {
             int nthreads = rhs.size();
             
             // Create a container and zero it.
-            Vector *r = new Vector(n);
-            for (int i=0; i<n; ++i) (*r)(i) = 0.0;
+            rhs[t] = new Vector(n);
+            Vector &r = *rhs[t];
+            for (int i=0; i<n; ++i) r(i) = 0.0;
        
             // Determine what portion of the job this thread does. 
             int chunk = n / nthreads; 
@@ -42,28 +36,33 @@ Vector* sym_spmv(const SparseMatrix &A, const Vector &x, int nthreads) {
             for (int i=begin; i<end; ++i) { 
                 for (int ij=A._ia[i]; ij<A._ia[i+1]; ++ij) {
                     int j = A._ja[ij];
-                    (*r)(i) += A._data[ij] * x(j);
+                    r(i) += A._data[ij] * x(j);
                     if (i == j) continue;
-                    (*r)(j) += A._data[ij] * x(i);
+                    r(j) += A._data[ij] * x(i);
                 }
             }
-            rhs[t] = r;
-            m[t]->unlock(); 
-            for (int i=0; i<m.size(); ++i) {
-                m[i]->lock();
-                m[i]->unlock();
-            }
-            
+        }));
+    }
+    for (auto i=pool.begin(); i!=pool.end(); ++i) i->join();
+    for (int t=0; t<nthreads; ++t) {
+        pool[t] = thread(
+            [&rhs, t]() {
+             // Determine what portion of the job this thread does. 
+            int nthreads = rhs.size();
+            int chunk = (rhs.front())->size() / nthreads; 
+            int begin = t*chunk;
+            int end   = begin + chunk;
+           
             // Copy segment that this thread owns, [beg, end), to r0.
             for (int i=begin; i<end; ++i) {
                 for (int td=1; td<nthreads; ++td) {
                     (*rhs[0])(i) += (*rhs[td])(i);
                 }
             }
-            delete m[t];
-        }));
+        });
     }
-    for (auto i=pool.begin(); i!=pool.end(); ++i) i->join();    
+    for (auto t=pool.begin(); t!=pool.end(); ++t) t->join();
+    for (int i=1; i<rhs.size(); ++i) delete rhs[i];
     return rhs[0];
 }
 

@@ -22,11 +22,11 @@ int main(int narg, char **argv) {
     Vector x(num_rows);
     for (int i=0; i<num_rows; ++i) x(i) = 1.0;
 
+/*
     Timer timer1; 
     A->init_chol_preconditioner();
-
     cout << "Chol time is: " << timer1.elapsed() << "\n";
-    
+  */  
     Timer timer; 
     for (int i=0; i<iterations; ++i) {
         Vector *b = sym_spmv(*A, x, num_thread);
