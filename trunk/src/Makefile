@@ -1,7 +1,7 @@
 # C++ compiler (and linker)
 CXX=g++
 # Compiler flags
-CFLAGS=-O2
+CFLAGS=-O3
 # Linker flags
 LFLAGS=-lpthread -lrt
 
@@ -12,7 +12,7 @@ EXE=mv
 all: $(SRC) $(EXE) $(OBJ)
 
 $(EXE): $(OBJ)
-	$(CXX) $(LFLAGS) $(OBJ) -o $@
+	$(CXX) $(OBJ) $(LFLAGS) -o $@
 
 .cpp.o:
 	$(CXX) -c -std=c++0x $(CFLAGS) $< -o $@
