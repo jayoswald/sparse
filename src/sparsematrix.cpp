@@ -32,13 +32,16 @@ Vector* sym_spmv(const SparseMatrix &A, const Vector &x, int nthreads) {
             int chunk = n / nthreads; 
             int begin = t*chunk;
             int end   = begin + chunk;
+            double * __restrict__ px = x._data;
+            double * __restrict__ pr = r._data;
+            double * __restrict__ pA = A._data;
             if (t == nthreads-1) end = n; 
             for (int i=begin; i<end; ++i) { 
-                for (int ij=A._ia[i]; ij<A._ia[i+1]; ++ij) {
+                for (int ij=A._ia[i]; ij<A._ia[i]+1; ++ij) {
                     int j = A._ja[ij];
-                    r(i) += A._data[ij] * x(j);
+                    pr[i] += pA[ij] * px[j];
                     if (i == j) continue;
-                    r(j) += A._data[ij] * x(i);
+                    pr[j] += pA[ij] * px[i];
                 }
             }
         }));

@@ -10,8 +10,8 @@ int main(int narg, char **argv) {
     // Default values.
     int num_rows   = 1000000;
     int band_width = 30;
-    int iterations = 16;
-    int num_thread = 1;
+    int iterations = 20;
+    int num_thread = 4;
     
     if (narg > 1) num_rows   = atoi(argv[1]);
     if (narg > 2) band_width = atoi(argv[2]);
